@@ -66,7 +66,13 @@ class InputInterfaceSocket(Input):
                                       "help"    : "This gives the number of seconds between each check for new clients."} ),
              "timeout": (InputValue, {"dtype"   : float,
                                       "default" : 0.0,
-                                      "help"    : "This gives the number of seconds before assuming a calculation has died. If 0 there is no timeout." } )}
+                                      "help"    : "This gives the number of seconds before assuming a calculation has died. If 0 there is no timeout." } ),
+             "client_timeout": (InputValue, {"dtype"   : float,
+                                      "default" : 5.0,
+                                      "help"    : "This gives the number of seconds the client blocks when the socket is busy." } ),
+             "server_timeout": (InputValue, {"dtype"   : float,
+                                      "default" : 10.0,
+                                      "help"    : "This gives the number of seconds the server blocks when the socket is busy." } ),}
    attribs = { "mode": (InputAttribute, {"dtype"    : str,
                                      "options"  : [ "unix", "inet" ],
                                      "default"  : "inet",
@@ -93,6 +99,8 @@ class InputInterfaceSocket(Input):
       self.port.store(iface.port)
       self.slots.store(iface.slots)
       self.timeout.store(iface.timeout)
+      self.client_timeout.store(iface.timeout)
+      self.server_timeout.store(iface.timeout)
       self.pbc.store(iface.dopbc)
 
    def fetch(self):
@@ -106,7 +114,10 @@ class InputInterfaceSocket(Input):
       super(InputInterfaceSocket,self).fetch()
       return InterfaceSocket(address=self.address.fetch(), port=self.port.fetch(),
             slots=self.slots.fetch(), mode=self.mode.fetch(),
-            latency=self.latency.fetch(), timeout=self.timeout.fetch(), dopbc=self.pbc.fetch())
+            latency=self.latency.fetch(), timeout=self.timeout.fetch(),
+            client_timeout=self.client_timeout.fetch(),
+            server_timeout=self.server_timeout.fetch(),
+            dopbc=self.pbc.fetch())
 
    def check(self):
       """Function that deals with optional arguments."""
@@ -123,3 +134,7 @@ class InputInterfaceSocket(Input):
          raise ValueError("Negative latency parameter specified.")
       if self.timeout.fetch() < 0.0:
          raise ValueError("Negative timeout parameter specified.")
+      if self.client_timeout.fetch() < 0.0:
+         raise ValueError("Negative client timeout parameter specified.")
+      if self.server_timeout.fetch() < 0.0:
+         raise ValueError("Negative server timeout parameter specified.")

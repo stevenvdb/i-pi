@@ -49,8 +49,6 @@ from ipi.utils.softexit import softexit
 
 HDRLEN = 12
 UPDATEFREQ = 10
-TIMEOUT = 5.0
-SERVERTIMEOUT = 2.0*TIMEOUT
 NTIMEOUT = 10
 
 def Message(mystr):
@@ -377,7 +375,8 @@ class InterfaceSocket(object):
          update the list of clients and then be reset to zero.
    """
 
-   def __init__(self, address="localhost", port=31415, slots=4, mode="unix", latency=1e-3, timeout=1.0, dopbc=True):
+   def __init__(self, address="localhost", port=31415, slots=4, mode="unix", latency=1e-3, timeout=1.0,
+        client_timeout=5.0, server_timeout=10.0, dopbc=True):
       """Initialises interface.
 
       Args:
@@ -391,6 +390,8 @@ class InterfaceSocket(object):
             wait before updating the client list. Defaults to 1e-3.
          timeout: Length of time waiting for data from a client before we assume
             the connection is dead and disconnect the client.
+         client_timeout: Length of time the client blocks when the socket is busy.
+         server_timeout: Length of time the server blocks when the socket is busy.
          dopbc: A boolean which decides whether or not to fold the bead positions
             back into the unit cell before passing them to the client code.
 
@@ -404,6 +405,8 @@ class InterfaceSocket(object):
       self.mode = mode
       self.latency = latency
       self.timeout = timeout
+      self.client_timeout = client_timeout
+      self.server_timeout = server_timeout
       self.dopbc = dopbc
       self._poll_thread = None
       self._prev_kill = {}
@@ -433,7 +436,7 @@ class InterfaceSocket(object):
          raise NameError("InterfaceSocket mode " + self.mode + " is not implemented (should be unix/inet)")
 
       self.server.listen(self.slots)
-      self.server.settimeout(SERVERTIMEOUT)
+      self.server.settimeout(self.server_timeout)
       self.clients = []
       self.requests = []
       self.jobs = []
@@ -536,7 +539,7 @@ class InterfaceSocket(object):
          readable, writable, errored = select.select([self.server], [], [], 0.0)
          if self.server in readable:
             client, address = self.server.accept()
-            client.settimeout(TIMEOUT)
+            client.settimeout(self.client_timeout)
             driver = DriverSocket(client)
             info(" @SOCKET:   Client asked for connection from "+ str( address ) +". Now hand-shaking.", verbosity.low)
             driver.poll()
